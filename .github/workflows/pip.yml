@@ -16,23 +16,47 @@ jobs:
       fail-fast: false
       matrix:
         platform: [windows-latest, macos-latest, ubuntu-latest]
-        python-version: ["3.8", "3.11"]
+        python-version: ["3.8", "3.12"]
+        include:
+          - platform: windows-latest
+            plat: windows
+            arch: amd64
+          - platform: macos-latest
+            plat: macos
+            arch: x8664
+          - platform: ubuntu-latest
+            plat: linux
+            arch: x8664
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
 
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/.vcpkg/vcpkg'
+
+    - name: Export vcpkg toolchain
+      shell: bash
+      run: |
+        echo "CMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake" >> "${GITHUB_ENV}"
+        echo "SKBUILD_CMAKE_ARGS=-DVCPKG_TARGET_TRIPLET=${{matrix.arch}}-${{matrix.plat}}-release;-DVCPKG_HOST_TRIPLET=${{matrix.arch}}-${{matrix.plat}}-release" >> "${GITHUB_ENV}"
+
     - name: Set min macOS version
       if: runner.os == 'macOS'
       run: |
-        echo "MACOS_DEPLOYMENT_TARGET=10.14" >> $GITHUB_ENV
+        echo "MACOS_DEPLOYMENT_TARGET=10.14" >> "${GITHUB_ENV}"
 
     - name: Build and install
-      run: python -m pip install pytest
-           pip install --verbose .
+      run: python3 -m pip install --verbose .
 
     - name: Test
-      run: python -m pytest
+      run: |
+        python3 -m pip install pytest
+        python3 -m pytest

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15...3.26)
+cmake_minimum_required(VERSION 3.21...3.26)
 
 project(nanobind_example LANGUAGES CXX)
 
@@ -25,13 +25,11 @@ if (NOT SKBUILD)
   after editing C++ files.")
 endif()
 
-# Try to import all Python components potentially needed by nanobind
-find_package(Python 3.8
-  REQUIRED COMPONENTS Interpreter Development.Module
-  OPTIONAL_COMPONENTS Development.SABIModule)
-
 # Import nanobind through CMake's find_package mechanism
-find_package(nanobind CONFIG REQUIRED)
+find_package(nanobind REQUIRED)
+
+# Other dependencies
+find_package(spdlog REQUIRED)
 
 # We are now ready to compile the actual extension module
 nanobind_add_module(
@@ -55,5 +53,10 @@ nanobind_add_module(
   src/nanobind_example_ext.cpp
 )
 
+target_link_libraries(nanobind_example_ext PUBLIC spdlog::spdlog)
+
 # Install directive for scikit-build-core
-install(TARGETS nanobind_example_ext LIBRARY DESTINATION nanobind_example)
+install(
+    TARGETS nanobind_example_ext
+    DESTINATION nanobind_example
+)

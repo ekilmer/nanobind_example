@@ -1,0 +1,7 @@
+The package nanobind provides CMake functions:
+
+    find_package(nanobind REQUIRED)
+    nanobind_add_module(my_ext source.cpp)
+
+    # See docs for more configuration options
+    # https://nanobind.readthedocs.io/en/latest/api_cmake.html

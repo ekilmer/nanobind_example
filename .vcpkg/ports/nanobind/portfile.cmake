@@ -1,0 +1,21 @@
+vcpkg_from_github(
+    OUT_SOURCE_PATH SOURCE_PATH
+    REPO ekilmer/nanobind
+    REF 724c0f006a5c27a86895c9020591460e6e20f40d
+    SHA512 8e8e2b29dbfc03186e65a018826c8c119f619d1b50d312295f62904db32d128d31945183c6422d425bca2b594f2c05437530dc8f9b661f3bf5111ae1b85f266e
+    HEAD_REF refactor-cmake
+)
+
+vcpkg_cmake_configure(
+    SOURCE_PATH "${SOURCE_PATH}"
+    OPTIONS
+        -DNB_USE_SUBMODULE_DEPS:BOOL=OFF
+        -DNB_INSTALL_CMAKEDIR:PATH=share/${PORT}
+)
+
+vcpkg_cmake_install()
+
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug")
+
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
+file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")

@@ -23,7 +23,9 @@ Installation
 ------------
 
 1. Clone this repository
-2. Run `pip install ./nanobind_example`
+2. Create a virtualenv `python3 -m venv venv && source ./venv/bin/activate`
+2. Run `export CMAKE_TOOLCHAIN_PATH=$PWD/.vcpkg/scripts/buildsystems/vcpkg.cmake`
+3. Run `pip install .`
 
 Afterwards, you should be able to issue the following commands (shown in an
 interactive Python session):
@@ -32,6 +34,13 @@ interactive Python session):
 >>> import nanobind_example
 >>> nanobind_example.add(1, 2)
 3
+```
+
+and also run the test(s)
+
+```sh
+python3 -m pip install pytest
+pytest --capture=no
 ```
 
 CI Examples
