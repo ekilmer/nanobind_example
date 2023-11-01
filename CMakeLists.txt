@@ -29,9 +29,8 @@ endif()
 find_package(Python 3.8
   REQUIRED COMPONENTS Interpreter Development.Module
   OPTIONAL_COMPONENTS Development.SABIModule)
-
-# Import nanobind through CMake's find_package mechanism
-find_package(nanobind CONFIG REQUIRED)
+# Add nanobind from submodule
+add_subdirectory(nanobind)
 
 # We are now ready to compile the actual extension module
 nanobind_add_module(
