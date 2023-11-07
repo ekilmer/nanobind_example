@@ -6,6 +6,7 @@ on:
   push:
     branches:
      - master
+     - "*"
   release:
     types:
       - published
@@ -16,8 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: true
 
     - name: Build SDist
       run: pipx run build --sdist
@@ -31,25 +30,173 @@ jobs:
 
 
   build_wheels:
-    name: Wheels on ${{ matrix.os }}
+    name:  ${{ matrix.plat }} (${{matrix.type}}) wheels for ${{matrix.arch}}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # Need to be explicit about what we're building for so that we can create
+      # the triplet name dynamically. If cibuildwheel exposed this info, we
+      # might be able to hide this a bit. On the other hand, we can now
+      # parallelize the build process for each support platform and
+      # architecture
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+            plat: linux
+            emulated: false
+            cibw_skip: '*musllinux*'
+            type: manylinux
+          - os: ubuntu-latest
+            arch: i686
+            plat: linux
+            emulated: true
+            cibw_skip: '*musllinux*'
+            type: manylinux
+          - os: ubuntu-latest
+            arch: aarch64
+            plat: linux
+            emulated: true
+            cibw_skip: '*musllinux*'
+            type: manylinux
+          - os: ubuntu-latest
+            arch: ppc64le
+            plat: linux
+            emulated: true
+            cibw_skip: '*musllinux*'
+            type: manylinux
+          - os: ubuntu-latest
+            arch: s390x
+            plat: linux
+            emulated: true
+            cibw_skip: '*musllinux*'
+            type: manylinux
+          - os: ubuntu-latest
+            arch: x86_64
+            plat: linux
+            # Say we're emulating because vcpkg doesn't really work on musl
+            emulated: true
+            cibw_skip: '*manylinux*'
+            type: musllinux
+          - os: ubuntu-latest
+            arch: i686
+            plat: linux
+            emulated: true
+            cibw_skip: '*manylinux*'
+            type: musllinux
+          - os: ubuntu-latest
+            arch: aarch64
+            plat: linux
+            emulated: true
+            cibw_skip: '*manylinux*'
+            type: musllinux
+          - os: ubuntu-latest
+            arch: ppc64le
+            plat: linux
+            emulated: true
+            cibw_skip: '*manylinux*'
+            type: musllinux
+          - os: ubuntu-latest
+            arch: s390x
+            plat: linux
+            emulated: true
+            cibw_skip: '*manylinux*'
+            type: musllinux
+          - os: macos-latest
+            arch: x86_64
+            plat: macos
+            emulated: false
+            cibw_skip: ''
+            type: all
+          - os: macos-latest
+            arch: arm64
+            plat: macos
+            emulated: false
+            cibw_skip: ''
+            type: all
+          - os: windows-latest
+            arch: AMD64
+            plat: windows
+            emulated: false
+            cibw_skip: ''
+            type: all
+          - os: windows-latest
+            arch: x86
+            plat: windows
+            emulated: false
+            cibw_skip: ''
+            type: all
+          - os: windows-latest
+            arch: ARM64
+            plat: windows
+            emulated: false
+            cibw_skip: ''
+            type: all
 
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: true
 
-    - uses: pypa/cibuildwheel@v2.13.0
-      env:
-        # Cross-compile on macOS
-        CIBW_ARCHS_MACOS: x86_64 arm64
+    - name: Set up QEMU
+      if: matrix.emulated
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: all
 
-        # Temporary: use pre-release Python 3.12 for stable ABI builds
-        CIBW_PRERELEASE_PYTHONS: True
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/.vcpkg/vcpkg'
+
+    # Let the environment take care of downloading it
+    - name: Clear vcpkg exe
+      if: matrix.plat == 'linux' && matrix.emulated
+      run: rm -f ${{ env.VCPKG_ROOT }}/vcpkg
+
+    - name: Set Unix CIBW env variables
+      if: matrix.plat != 'windows'
+      run: |
+        # Need to remove underscores due to weird vcpkg error
+        arch=${{ matrix.arch }}
+        triplet=${arch//_/}-${{ matrix.plat }}-release
+        host_triplet=x8664-linux-release
+        extra_defs=""
+        if ${{ matrix.emulated }} ; then
+          host_triplet=${triplet}
+          extra_defs="VCPKG_FORCE_SYSTEM_BINARIES=1"
+        fi
+
+        if ${{ matrix.plat == 'linux' }} ; then
+          # Need to disable metrics or else s390x musl will deadlock...
+          # Happened sometime between tool tag `2022-06-17` and `2022-07-21`
+          echo "CIBW_ENVIRONMENT=VCPKG_DISABLE_METRICS=1 VCPKG_ROOT=/project/.vcpkg/vcpkg CMAKE_TOOLCHAIN_FILE=/project/.vcpkg/vcpkg/scripts/buildsystems/vcpkg.cmake SKBUILD_CMAKE_ARGS='-DVCPKG_TARGET_TRIPLET=${triplet};-DVCPKG_HOST_TRIPLET=${host_triplet};-DVCPKG_INSTALL_OPTIONS=--debug' ${extra_defs}" >> "$GITHUB_ENV"
+        else
+          echo "CIBW_ENVIRONMENT=VCPKG_DISABLE_METRICS=1 VCPKG_ROOT=${{ env.VCPKG_ROOT }} CMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake SKBUILD_CMAKE_ARGS='-DVCPKG_TARGET_TRIPLET=${triplet};-DVCPKG_HOST_TRIPLET=x8664-macos-release;-DVCPKG_INSTALL_OPTIONS=--debug' MACOSX_DEPLOYMENT_TARGET=10.14" >> "$GITHUB_ENV"
+        fi
+
+    - name: Set Windows CIBW env variables
+      if: matrix.plat == 'windows'
+      run: |
+        # Need to be lowercase
+        echo 'CIBW_ENVIRONMENT=VCPKG_DISABLE_METRICS=1 VCPKG_ROOT=D:\\a\\nanobind_example\\nanobind_example\\.vcpkg\\vcpkg CMAKE_TOOLCHAIN_FILE=D:\\a\\nanobind_example\\nanobind_example\\.vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake SKBUILD_CMAKE_ARGS="-DVCPKG_TARGET_TRIPLET=${{matrix.arch}}-${{matrix.plat}}-release;-DVCPKG_HOST_TRIPLET=amd64-windows-release;-DVCPKG_INSTALL_OPTIONS=--debug"' >> "$env:GITHUB_ENV"
+
+    - uses: pypa/cibuildwheel@v2.16.2
+      env:
+        # Only build one arch at a time
+        CIBW_ARCHS: ${{ matrix.arch }}
+        CIBW_SKIP: ${{ matrix.cibw_skip }}
+        CIBW_BEFORE_BUILD_LINUX: ./scripts/cibw_before_build_linux.sh
+
+    - name: Upload logs on error
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.plat }}_error_logs_${{matrix.type}}_${{matrix.arch}}
+        retention-days: 5
+        path: |
+          ${{ env.VCPKG_ROOT }}/buildtrees/**/*.log
+          build/**/*.log
 
     - name: Verify clean directory
       run: git diff --exit-code
@@ -58,6 +205,7 @@ jobs:
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
+        retention-days: 5
         path: wheelhouse/*.whl
 
 

@@ -33,6 +33,9 @@ find_package(Python 3.8
 # Import nanobind through CMake's find_package mechanism
 find_package(nanobind CONFIG REQUIRED)
 
+# Other dependencies
+find_package(spdlog REQUIRED)
+
 # We are now ready to compile the actual extension module
 nanobind_add_module(
   # Name of the extension
@@ -54,6 +57,8 @@ nanobind_add_module(
   # Source code goes here
   src/nanobind_example_ext.cpp
 )
+
+target_link_libraries(nanobind_example_ext PUBLIC spdlog::spdlog)
 
 # Install directive for scikit-build-core
 install(TARGETS nanobind_example_ext LIBRARY DESTINATION nanobind_example)

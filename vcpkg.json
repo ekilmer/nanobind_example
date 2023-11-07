@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "nanobind-example",
+  "version-semver": "0.0.1",
+  "description": "An example minimal project that compiles bindings using nanobind and scikit-build",
+  "dependencies": [
+    "spdlog",
+    "nanobind"
+  ],
+  "vcpkg-configuration": {
+    "overlay-ports": [".vcpkg/ports"],
+    "overlay-triplets": [".vcpkg/triplets"]
+  }
+}
