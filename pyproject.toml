@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core >=0.4.3", "nanobind@git+https://github.com/ekilmer/nanobind@add-install-rules"]
+requires = ["scikit-build-core >=0.4.3", "nanobind@git+https://github.com/ekilmer/nanobind@no-dependency-install"]
 build-backend = "scikit_build_core.build"
 
 [project]
