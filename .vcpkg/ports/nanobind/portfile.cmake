@@ -1,9 +1,12 @@
+# nanobind does not build anything
+set(VCPKG_BUILD_TYPE release)
+
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO ekilmer/nanobind
-    REF 92706328921be5b63ceeb9e96bdfbfa0ddbe59af
-    SHA512 2dc786f115130546078cac03d261678def5c004c7a57c151422a6f68a9878f7649a1a787d73e3114708901a81acb853904499f86a1c493f29bd3a9ee4a4f5ae9
-    HEAD_REF add-install-rules
+    REF 8aa5104b3f77087e7c2c06fc97231b9b257764b3
+    SHA512 a6e48405425db13bfdba6030ce7d12e8a8de466c393f7ceea97b92c774fc34a3939515718ce1f87d3d69b541837bf4695e6cbac81e40916bc7018dc072d36703
+    HEAD_REF no-dependency-install
 )
 
 vcpkg_cmake_configure(
